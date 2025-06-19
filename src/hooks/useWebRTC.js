@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { io } from 'socket.io-client';
+import { socket } from '../socket';
 
-const SIGNALING_SERVER_URL = 'https://reactvideocallingapp1-backend-production.up.railway.app';
+// const SIGNALING_SERVER_URL = 'https://reactvideocallingapp1-backend-production.up.railway.app';
 const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 export default function useWebRTC(roomId) {
@@ -97,7 +97,11 @@ export default function useWebRTC(roomId) {
   useEffect(() => {
     const start = async () => {
       try {
-        socketRef.current = io(SIGNALING_SERVER_URL, { transports: ['websocket'] });
+        socketRef.current = socket;
+        if (!socket.connected) {
+          console.log('socket conncect rtc');
+          socket.connect();
+        }
 
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localStreamRef.current = stream;

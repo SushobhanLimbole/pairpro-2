@@ -110,6 +110,11 @@ export default function EditorPage() {
 
         // socket.emit("join-room", roomId);
 
+        if (!socket.connected) {
+          console.log('socket conncect rtc');
+          socket.connect();
+        }
+
         socket.on("code-change", (newCode) => {
             setCode(newCode);
         });
