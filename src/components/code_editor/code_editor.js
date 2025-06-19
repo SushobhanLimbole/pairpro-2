@@ -12,11 +12,204 @@ export default function CodeEditor({ handleCode, setRefEditor, language, code, s
         // Store ref
         setRefEditor(editor);
 
-        // Cursor sync
-        editor.onDidChangeCursorPosition(() => {
-            const position = editor.getPosition();
-            socket.emit("cursor-change", { roomId, cursorData: { position } });
+        // editor.onDidChangeModelContent((event) => {
+        //     console.log('code change emmit');
+
+        //     const changes = event.changes.map(change => ({
+        //         range: {
+        //             startLineNumber: change.range.startLineNumber,
+        //             startColumn: change.range.startColumn,
+        //             endLineNumber: change.range.endLineNumber,
+        //             endColumn: change.range.endColumn
+        //         },
+        //         text: change.text
+        //     }));
+
+        //     console.log(changes);
+
+
+        //     socket.emit("code-change", {
+        //         roomId,
+        //         code: {
+        //             from: socket.id,
+        //             changes: changes
+        //         }
+        //     });
+        // });
+
+        // editor.onDidChangeModelContent((e) => {
+        //     const changes = e.changes.map(change => ({
+        //         range: {
+        //             startLineNumber: change.range.startLineNumber,
+        //             startColumn: change.range.startColumn,
+        //             endLineNumber: change.range.endLineNumber,
+        //             endColumn: change.range.endColumn
+        //         },
+        //         text: change.text
+        //     }));
+
+        //     const payload = {
+        //         roomId,
+        //         code: {
+        //             from: socket.id,
+        //             changes
+        //         }
+        //     };
+
+        //     console.log("[EMIT] code-change:", payload);
+
+        //     socket.emit("code-change", payload);
+        // });
+
+        let suppressChange = false;
+
+        editor.onDidChangeModelContent((e) => {
+            if (suppressChange) {
+                console.log("[SKIP] Suppressing change from remote edit");
+                suppressChange = false;
+                return;
+            }
+
+            const changes = e.changes.map(change => ({
+                range: {
+                    startLineNumber: change.range.startLineNumber,
+                    startColumn: change.range.startColumn,
+                    endLineNumber: change.range.endLineNumber,
+                    endColumn: change.range.endColumn
+                },
+                text: change.text
+            }));
+
+            const payload = {
+                roomId,
+                code: {
+                    from: socket.id,
+                    changes
+                }
+            };
+
+            console.log("[EMIT] code-change:", payload);
+            socket.emit("code-change", payload);
         });
+
+        // Allow EditorPage to access suppressChange
+        window.setEditorSuppressChange = (value) => {
+            suppressChange = value;
+        };
+
+
+        // editor.onDidChangeCursorPosition((e) => {
+        //     const position = e.position;
+        //     socket.emit('cursor-change', {
+        //         roomId,
+        //         cursorData: {
+        //             lineNumber: position.lineNumber,
+        //             column: position.column,
+        //         },
+        //     });
+        // });
+
+        editor.onDidChangeCursorPosition((e) => {
+            const cursorData = {
+                lineNumber: e.position.lineNumber,
+                column: e.position.column
+            };
+
+            const payload = {
+                roomId,
+                cursorData
+            };
+
+            console.log("[EMIT] cursor-change:", payload);
+
+            socket.emit("cursor-change", payload);
+        });
+
+
+
+
+        // Cursor sync
+        // 1
+        // editor.onDidChangeCursorPosition(() => {
+        //     const position = editor.getPosition();
+        //     socket.emit("cursor-change", { roomId, cursorData: { position } });
+        // });
+
+        // 2
+        editor.onDidChangeCursorPosition((e) => {
+            const position = e.position;
+
+            socket.emit("cursor-change", {
+                roomId,
+                socketId: socket.id,
+                cursorData: position
+            });
+        });
+
+        // 3
+        // editor.onDidChangeModelContent((event) => {
+        //     const changes = event.changes;
+        //     socket.emit("code-change", {
+        //         roomId,
+        //         code: {
+        //             from: socket.id,
+        //             changes: changes
+        //         }
+        //     });
+        // });
+
+        // editor.onDidChangeModelContent((event) => {
+        //     const changes = event.changes.map(change => ({
+        //         range: {
+        //             startLineNumber: change.range.startLineNumber,
+        //             startColumn: change.range.startColumn,
+        //             endLineNumber: change.range.endLineNumber,
+        //             endColumn: change.range.endColumn
+        //         },
+        //         text: change.text
+        //     }));
+
+        //     socket.emit("code-change", {
+        //         roomId,
+        //         code: {
+        //             from: socket.id,
+        //             changes: changes
+        //         }
+        //     });
+        // });
+
+        // editor.onDidChangeModelContent((event) => {
+        //     const changes = event.changes.map(change => ({
+        //         range: {
+        //             startLineNumber: change.range.startLineNumber,
+        //             startColumn: change.range.startColumn,
+        //             endLineNumber: change.range.endLineNumber,
+        //             endColumn: change.range.endColumn,
+        //         },
+        //         text: change.text,
+        //     }));
+
+        //     socket.emit("code-change", {
+        //         roomId,
+        //         code: {
+        //             from: socket.id,
+        //             changes
+        //         }
+        //     });
+        // });
+
+
+        // editor.onDidChangeCursorPosition((e) => {
+        //     socket.emit("cursor-change", {
+        //         socketId: socket.id,
+        //         cursorData: {
+        //             lineNumber: e.position.lineNumber,
+        //             column: e.position.column
+        //         },
+        //         roomId,
+        //     });
+        // });
+
 
         // Python completion
         monaco.languages.register({ id: "python" });
@@ -119,7 +312,7 @@ export default function CodeEditor({ handleCode, setRefEditor, language, code, s
             value={code}
             onChange={(value) => {
                 handleCode(value || "");
-                socket.emit("code-change", { roomId, code: value });
+                // socket.emit("code-change", { roomId, code: value });
             }}
             onMount={(edit, mon) => mountLanguages(edit, mon)}
             options={{
