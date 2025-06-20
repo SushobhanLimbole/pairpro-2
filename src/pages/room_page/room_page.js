@@ -1,27 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import useWebRTC from '../../hooks/useWebRTC';
 import VideoPlayer from '../../components/video_player/video_player';
-import { FaSlideshare, FaPhoneSlash, FaVolumeUp, FaVolumeMute, FaMicrophoneSlash, FaMicrophone, FaEllipsisV } from 'react-icons/fa';
+import { FaSlideshare, FaPhoneSlash, FaMicrophoneSlash, FaMicrophone, FaEllipsisV } from 'react-icons/fa';
 import styles from './room_page.module.css';
 import VideoNavbar from '../../components/video_navbar/video_navbar';
 import { useWebRTCContext } from '../../utils/webRTC_context';
+import ChatSection from '../../components/chat_section/chat_section';
 
 export default function RoomPage() {
 
   const { roomId } = useParams();
   const navigate = useNavigate();
-
-  // const {
-  //   localVideoRef,
-  //   remoteVideoRef,
-  //   toggleAudio,
-  //   shareScreen,
-  //   muted,
-  //   screenVideoRef,
-  //   isScreenSharing,
-  //   isRemoteConnected,
-  // } = useWebRTC(roomId);
 
   const {
     localVideoRef,
@@ -42,13 +31,19 @@ export default function RoomPage() {
   }, [roomId]);
 
   const [isScreenFull, setIsScreenFull] = useState(false);
+  const [isOpenChat, setIsOpenChat] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleFullScreen = () => {
     setIsScreenFull(!isScreenFull);
   };
 
-  const [menuOpen, setMenuOpen] = useState(false);
-
+  const handleChatSection = () => {
+    console.log('handleChatSection called');
+    setMenuOpen(false);
+    setIsOpenChat(!isOpenChat);
+  }
+  
   const handleMenuOption = (option) => {
     console.log("Selected:", option);
     setMenuOpen(false);
@@ -56,11 +51,15 @@ export default function RoomPage() {
       navigate(option);
     }
   };
-
+  
   return (
     <section className={styles.roomPage}>
 
       <VideoNavbar roomId={roomId} />
+
+      {
+        isOpenChat ? <ChatSection handleChat={handleChatSection} roomId={roomId} /> : <></>
+      }
 
       <div className={styles.container}>
         <VideoPlayer
@@ -105,21 +104,19 @@ export default function RoomPage() {
           </button>
 
           <button
-            // style={{
-            //   backgroundColor: menuOpen ? 'rgba(33, 149, 243, 0.77)' : 'gray'
-            // }}
             onClick={() => setMenuOpen(!menuOpen)}
             className={styles.menuButton}
           >
             <FaEllipsisV />
           </button>
 
+
           {menuOpen && (
             <div className={styles.dropdownMenu}>
               <div onClick={() => handleMenuOption(`/code-editor/${roomId}`)} className={styles.menuItem}>
                 <span className={styles.icon}>{`{}`}</span> Code Editor
               </div>
-              <div onClick={() => handleMenuOption("")} className={styles.menuItem}>
+              <div onClick={handleChatSection} className={styles.menuItem}>
                 <span className={styles.icon}>💬</span> Chat
               </div>
             </div>
